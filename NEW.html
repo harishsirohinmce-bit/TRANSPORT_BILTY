@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Transport Bilty Generator - GSV Logistics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Keep a few of your original utility compositions */
+        .container-card { max-width: 72rem; margin: 0 auto; background: #fff; padding: 2.5rem; border-radius: 1rem; box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        .form-group { margin-bottom: 1rem; }
+        .form-label { display:block; font-size:0.9rem; font-weight:600; margin-bottom:0.25rem; color:#374151; }
+        .form-input { display:block; width:100%; border-radius:0.5rem; border:1px solid #D1D5DB; padding:0.5rem 0.75rem; }
+        .section-heading { font-size:1.05rem; font-weight:700; color:#1F2937; border-bottom:1px solid #E5E7EB; padding-bottom:0.5rem; margin-bottom:1rem; }
+        .btn-primary { width:100%; padding:0.75rem; background:#2563EB; color:#fff; border-radius:0.75rem; font-weight:600; }
+        .btn-secondary { padding:0.5rem 0.75rem; background:#4B5563; color:#fff; border-radius:0.5rem; }
+        .btn-success { padding:0.5rem 0.75rem; background:#16A34A; color:#fff; border-radius:0.5rem; }
+        .btn-danger { padding:0.5rem 0.75rem; background:#DC2626; color:#fff; border-radius:0.5rem; }
+        .nav-button { padding:0.5rem 0.75rem; border-radius:0.5rem; font-weight:600; cursor:pointer; }
+        .nav-button.active { background:#2563EB; color:#fff; }
+        .warning-box { margin-top:0.5rem; background:#FEF3F2; border:1px solid #FCA5A5; color:#991B1B; padding:0.5rem; border-radius:0.375rem; }
+        .success-box { margin-top:0.5rem; background:#ECFDF5; border:1px solid #86EFAC; color:#065F46; padding:0.5rem; border-radius:0.375rem; }
+        .hidden { display:none !important; }
+        /* PDF template styles (kept same) */
+        #pdfTemplate { width: 794px; padding: 40px; box-sizing: border-box; font-family: 'Inter', sans-serif; font-size: 14px; color: #000; line-height: 1.4; position: absolute; left: -9999px; background-color: #fff; border: none; }
+        .bilty-header { text-align: center; font-size: 24px; font-weight: bold; margin: 0; color: #1a365d; }
+        .bilty-info { text-align: center; font-size: 12px; margin: 5px 0; color: #4a5568; }
+        .bilty-section { border: 1px solid #000; padding: 10px; margin-bottom: 10px; border-radius: 8px; }
+        .bilty-label { font-weight: 500; }
+    </style>
+</head>
+<body class="p-4 sm:p-8 bg-gray-100">
+
+    <!-- Navigation Menu -->
+    <nav class="bg-white shadow-sm border-b mb-6 rounded-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex flex-col sm:flex-row justify-between items-center py-4 space-y-2 sm:space-y-0">
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="showMainForm()" id="navNewBilty" class="nav-button active">New Bilty</button>
+                    <button onclick="showSearchPanel()" id="navSearch" class="nav-button">Search</button>
+                    <button onclick="showHistoryPanel()" id="navHistory" class="nav-button">History</button>
+                    <button onclick="showBulkGenerationModal()" id="navBulk" class="nav-button">Bulk Generate</button>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="exportToExcel()" class="text-sm btn-success">Export Excel</button>
+                    <button onclick="backupData()" class="text-sm btn-secondary">Backup</button>
+                    <button onclick="restoreData()" class="text-sm btn-secondary">Restore</button>
+                    <button onclick="showSettingsModal()" class="text-sm btn-secondary">Settings</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-card">
+        <!-- Main Form Panel -->
+        <div id="mainFormPanel">
+            <h1 class="text-3xl font-bold text-center text-gray-900 mb-2">GSV LOGISTICS & WAREHOUSING PVT. LTD</h1>
+            <p class="text-center text-gray-600 mb-8">
+                REGISTERED OFFICE- 43/4, First Floor, Bharat Complex, Ramteram Road Ghaziabad<br>
+                GSTIN-09AAHCG3879M1ZT | Phone: +91-9810656895 | Email:gsvlogistics@gmail.com
+            </p>
+            
+            <form id="biltyForm" onsubmit="return false;">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label for="biltyNumber" class="form-label">Bilty Number *</label>
+                        <input type="text" id="biltyNumber" class="form-input" placeholder="Enter bilty number" required>
+                        <div id="duplicateWarning" class="hidden warning-box"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="deliveryNo" class="form-label">Delivery No *</label>
+                        <input type="text" id="deliveryNo" class="form-input" placeholder="Enter delivery number" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="invoiceAmount" class="form-label">Invoice Amount *</label>
+                        <input type="text" id="invoiceAmount" class="form-input" placeholder="Enter invoice amount" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="deliveryDate" class="form-label">Delivery Date *</label>
+                        <input type="date" id="deliveryDate" class="form-input" required>
+                    </div>
+                </div>
+
+                <div class="section-heading mt-6">Consignor (From)</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label for="consignorName" class="form-label">Name *</label>
+                        <select id="consignorName" class="form-input" required onchange="updateConsignorDetails()">
+                            <option value="" disabled selected>Select consignor</option>
+                            <option value="Ambuja Cement Ltd.">Ambuja Cement Ltd.</option>
+                            <option value="ACC Ltd.">ACC Ltd.</option>
+                            <option value="UltraTech Cement Ltd.">UltraTech Cement Ltd.</option>
+                            <option value="Shree Cement Ltd.">Shree Cement Ltd.</option>
+                            <option value="Custom">Custom (Enter manually)</option>
+                        </select>
+                        <input type="text" id="consignorNameCustom" class="form-input mt-2 hidden" placeholder="Enter custom consignor name">
+                    </div>
+                    <div class="form-group">
+                        <label for="consignorAddress" class="form-label">Address *</label>
+                        <input type="text" id="consignorAddress" class="form-input" placeholder="Enter consignor address" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="consignorGstin" class="form-label">GSTIN</label>
+                        <input type="text" id="consignorGstin" class="form-input" placeholder="Enter GSTIN">
+                    </div>
+                </div>
+
+                <div class="section-heading mt-6">Consignee (To)</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label for="consigneeName" class="form-label">Name *</label>
+                        <input type="text" id="consigneeName" class="form-input" placeholder="Enter consignee name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="consigneeAddress" class="form-label">Address *</label>
+                        <input type="text" id="consigneeAddress" class="form-input" placeholder="Enter consignee address" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="consigneeGstin" class="form-label">GSTIN</label>
+                        <input type="text" id="consigneeGstin" class="form-input" placeholder="Enter GSTIN">
+                    </div>
+                    <div class="form-group">
+                        <label for="consigneePhone" class="form-label">Phone Number</label>
+                        <input type="tel" id="consigneePhone" class="form-input" placeholder="Enter phone number">
+                    </div>
+                </div>
+
+                <div class="section-heading mt-6">Vehicle & Goods</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label for="vehicleNumber" class="form-label">Vehicle Number *</label>
+                        <input type="text" id="vehicleNumber" class="form-input" placeholder="e.g., UP14AB1234" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="driverName" class="form-label">Driver Name</label>
+                        <input type="text" id="driverName" class="form-input" placeholder="Enter driver name">
+                    </div>
+                    <div class="form-group">
+                        <label for="goodsDescription" class="form-label">Description of Goods *</label>
+                        <input type="text" id="goodsDescription" class="form-input" placeholder="e.g., Cement Bags" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="quantity" class="form-label">Quantity (in Bags) *</label>
+                        <input type="number" id="quantity" class="form-input" placeholder="Enter quantity" required oninput="calculateWeight()">
+                    </div>
+                    <div class="form-group">
+                        <label for="weight" class="form-label">Weight (in MT) *</label>
+                        <input type="number" id="weight" class="form-input bg-gray-100" placeholder="Auto-calculated" required readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="freight" class="form-label">Freight Amount</label>
+                        <input type="number" id="freight" class="form-input" placeholder="Enter freight amount">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+                    <button type="button" onclick="generatePDF()" class="btn-primary">Generate PDF</button>
+                    <button type="button" onclick="printBilty()" class="btn-secondary">Print Bilty</button>
+                    <button type="button" onclick="resetForm()" class="btn-danger">Reset Form</button>
+                </div>
+                
+                <div class="flex gap-2 mt-4">
+                    <button type="button" onclick="saveDraft()" class="btn-secondary text-sm">Save Draft</button>
+                    <button type="button" onclick="loadDraft()" class="btn-secondary text-sm">Load Draft</button>
+                </div>
+                
+                <div id="statusMessage" class="mt-4 text-center text-sm font-medium text-blue-600 hidden">Generating PDF...</div>
+            </form>
+        </div>
+
+        <!-- Search Panel -->
+        <div id="searchPanel" class="hidden">
+            <h2 class="text-2xl font-bold text-center text-gray-900 mb-6">Search Bilties</h2>
+            <div class="mb-4">
+                <input type="text" id="searchInput" class="form-input" placeholder="Search by bilty number, consignee name, or vehicle number..." oninput="searchBilties()">
+            </div>
+            <div id="searchResults" class="space-y-2">
+                <p class="text-gray-500 text-center">Enter search terms to find bilties</p>
+            </div>
+        </div>
+
+        <!-- History Panel -->
+        <div id="historyPanel" class="hidden">
+            <h2 class="text-2xl font-bold text-center text-gray-900 mb-6">Bilty History</h2>
+            <div class="mb-4 flex gap-2">
+                <select id="historyFilter" class="form-input" onchange="filterHistory()">
+                    <option value="all">All Bilties</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                </select>
+                <button onclick="clearHistory()" class="btn-danger text-sm">Clear History</button>
+            </div>
+            <div id="historyResults" class="space-y-2">
+                <p class="text-gray-500 text-center">No bilty history found</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced PDF Template -->
+    <div id="pdfTemplate">
+        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px;">
+            <h1 class="bilty-header">GSV LOGISTICS & WAREHOUSING PVT. LTD</h1>
+            <div class="bilty-info">
+                REGISTERED OFFICE- 43/4, First Floor, Bharat Complex, Ramteram Road Ghaziabad<br>
+                GSTIN-09AAHCG3879M1ZT | Phone: +91-9810656895 | Email: gsvlogistics@gmail.com
+            </div>
+            <h2 style="font-size: 18px; font-weight: 600; margin: 10px 0 0 0; color: #2d3748;">GOODS TRANSPORT RECEIPT</h2>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px; background-color: #f7fafc; padding: 10px; border-radius: 5px;">
+            <div><span class="bilty-label">Bilty No:</span> <span id="pdfBiltyNumber"></span></div>
+            <div><span class="bilty-label">Delivery No:</span> <span id="pdfDeliveryNo"></span></div>
+            <div><span class="bilty-label">Date:</span> <span id="pdfDeliveryDate"></span></div>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 20px; background-color: #edf2f7; padding: 8px; border-radius: 5px;">
+            <strong style="font-size: 16px;">Invoice Amount: ₹<span id="pdfInvoiceAmount"></span></strong>
+        </div>
+
+        <div class="bilty-section">
+            <h2 class="bilty-label" style="font-size: 16px; margin-bottom: 8px;">Consignor Details (From)</h2>
+            <div><span class="bilty-label">Name:</span> <span id="pdfConsignorName"></span></div>
+            <div><span class="bilty-label">Address:</span> <span id="pdfConsignorAddress"></span></div>
+            <div><span class="bilty-label">GSTIN:</span> <span id="pdfConsignorGstin"></span></div>
+        </div>
+
+        <div class="bilty-section">
+            <h2 class="bilty-label" style="font-size: 16px; margin-bottom: 8px;">Consignee Details (To)</h2>
+            <div><span class="bilty-label">Name:</span> <span id="pdfConsigneeName"></span></div>
+            <div><span class="bilty-label">Address:</span> <span id="pdfConsigneeAddress"></span></div>
+            <div><span class="bilty-label">GSTIN:</span> <span id="pdfConsigneeGstin"></span></div>
+            <div><span class="bilty-label">Phone:</span> <span id="pdfConsigneePhone"></span></div>
+        </div>
+
+        <div class="bilty-section">
+            <h2 class="bilty-label" style="font-size: 16px; margin-bottom: 8px;">Vehicle & Goods Details</h2>
+            <div style="display: flex; justify-content: space-between;">
+                <div><span class="bilty-label">Vehicle No:</span> <span id="pdfVehicleNumber"></span></div>
+                <div><span class="bilty-label">Driver:</span> <span id="pdfDriverName"></span></div>
+            </div>
+            <div style="margin-top: 8px;"><span class="bilty-label">Description of Goods:</span> <span id="pdfGoodsDescription"></span></div>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                <div><span class="bilty-label">Quantity:</span> <span id="pdfQuantity"></span> Bags</div>
+                <div><span class="bilty-label">Weight:</span> <span id="pdfWeight"></span> MT</div>
+                <div><span class="bilty-label">Freight:</span> ₹<span id="pdfFreight"></span></div>
+            </div>
+        </div>
+
+        <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; width: 150px; margin-bottom: 5px;"></div>
+                    <small>Consignor Signature</small>
+                </div>
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; width: 150px; margin-bottom: 5px;"></div>
+                    <small>Driver Signature</small>
+                </div>
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #000; width: 150px; margin-bottom: 5px;"></div>
+                    <small>Consignee Signature</small>
+                </div>
+            </div>
+            <div style="text-align: center; font-size: 11px; color: #718096;">
+                <p>Subject to Ghaziabad Jurisdiction | This is a computer-generated document</p>
+                <p>Generated on: <span id="pdfGeneratedDate"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- External libs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+        const { jsPDF } = window.jspdf || {};
+        let existingBiltyNumbers = new Set();
+        let currentPanel = 'main';
+
+        window.onload = function() {
+            initializeApp();
+        };
+
+        function initializeApp() {
+            // Set current date
+            const deliveryDateInput = document.getElementById('deliveryDate');
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            deliveryDateInput.value = formattedDate;
+
+            // Load settings
+            loadSettings();
+
+            // Load existing bilty numbers and history
+            loadExistingBiltyNumbers();
+            loadHistoryResults();
+
+            // Setup event listeners
+            setupEventListeners();
+
+            // Load draft if auto-save is enabled
+            const settings = getSettings();
+            if (settings.autoSave) {
+                loadDraft();
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('biltyNumber').addEventListener('blur', checkDuplicateBilty);
+            document.getElementById('consignorName').addEventListener('change', updateConsignorDetails);
+
+            // Auto-save functionality
+            const settings = getSettings();
+            if (settings.autoSave) {
+                const formInputs = document.querySelectorAll('#biltyForm input, #biltyForm select');
+                formInputs.forEach(input => {
+                    input.addEventListener('input', debounce(saveDraft, 1000));
+                });
+            }
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Navigation Functions
+        function showMainForm() {
+            hideAllPanels();
+            document.getElementById('mainFormPanel').classList.remove('hidden');
+            updateNavigation('navNewBilty');
+            currentPanel = 'main';
+        }
+
+        function showSearchPanel() {
+            hideAllPanels();
+            document.getElementById('searchPanel').classList.remove('hidden');
+            updateNavigation('navSearch');
+            currentPanel = 'search';
+            loadSearchResults();
+        }
+
+        function showHistoryPanel() {
+            hideAllPanels();
+            document.getElementById('historyPanel').classList.remove('hidden');
+            updateNavigation('navHistory');
+            currentPanel = 'history';
+            loadHistoryResults();
+        }
+
+        function hideAllPanels() {
+            document.getElementById('mainFormPanel').classList.add('hidden');
+            document.getElementById('searchPanel').classList.add('hidden');
+            document.getElementById('historyPanel').classList.add('hidden');
+        }
+
+        function updateNavigation(activeId) {
+            document.querySelectorAll('.nav-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const el = document.getElementById(activeId);
+            if (el) el.classList.add('active');
+        }
+
+        // Settings (simple prompt-based modal)
+        function getSettings() {
+            const raw = localStorage.getItem('biltySettings');
+            if (raw) try { return JSON.parse(raw); } catch(e){ }
+            return { bagWeight: 50, autoSave: false };
+        }
+
+        function loadSettings() {
+            const s = getSettings();
+            // apply bag weight to calculation if needed (calculateWeight reads settings)
+            // no UI modal here: showSettingsModal provides prompt-based editing
+        }
+
+        function showSettingsModal() {
+            const s = getSettings();
+            const bagWeightRaw = prompt('Enter bag weight in kg (default ' + s.bagWeight + '):', s.bagWeight);
+            if (bagWeightRaw === null) return;
+            const bagWeight = parseFloat(bagWeightRaw);
+            if (isNaN(bagWeight) || bagWeight <= 0) {
+                alert('Invalid bag weight. Operation cancelled.');
+                return;
+            }
+            const autoSaveRaw = confirm('Enable auto-save of form drafts? (OK = Yes, Cancel = No)');
+            const newSettings = { bagWeight: bagWeight, autoSave: autoSaveRaw };
+            localStorage.setItem('biltySettings', JSON.stringify(newSettings));
+            showMessage('Settings saved', 'success');
+            // rebind auto-save if toggled
+            if (autoSaveRaw) {
+                const formInputs = document.querySelectorAll('#biltyForm input, #biltyForm select');
+                formInputs.forEach(input => {
+                    input.addEventListener('input', debounce(saveDraft, 1000));
+                });
+            }
+        }
+
+        // Form Validation Functions
+        function validateForm() {
+            const biltyNumber = document.getElementById('biltyNumber').value.trim();
+            const vehicleNumber = document.getElementById('vehicleNumber').value.trim();
+
+            if (!biltyNumber) {
+                showMessage('Please enter bilty number', 'error');
+                return false;
+            }
+            
+            // Validate bilty number format
+            if (!/^[A-Z0-9]{4,12}$/i.test(biltyNumber)) {
+                showMessage('Please enter a valid bilty number (4-12 alphanumeric characters)', 'error');
+                return false;
+            }
+            
+            // Validate vehicle number format (Indian format)
+            const cleanVehicleNumber = vehicleNumber.replace(/\s/g, '').toUpperCase();
+            if (!/^[A-Z]{2}[0-9]{2}[A-Z]{1,2}[0-9]{4}$/.test(cleanVehicleNumber)) {
+                showMessage('Please enter a valid vehicle number (e.g., UP14AB1234)', 'error');
+                return false;
+            }
+            
+            // basic required checks
+            const requiredFields = ['deliveryNo', 'invoiceAmount', 'deliveryDate', 'consignorAddress', 'consigneeName', 'consigneeAddress', 'goodsDescription', 'quantity'];
+            for (const id of requiredFields) {
+                const el = document.getElementById(id);
+                if (el && !el.value.trim()) {
+                    showMessage('Please fill all required fields', 'error');
+                    return false;
+                }
+            }
+
+            // duplicate check
+            const biltyNumberUpper = biltyNumber.toUpperCase();
+            if (existingBiltyNumbers.has(biltyNumberUpper)) {
+                // still allow if user intends to overwrite? We warn and stop.
+                showMessage('Bilty number already exists. Use a unique bilty number.', 'error');
+                return false;
+            }
+            
+            return true;
+        }
+
+        function checkDuplicateBilty() {
+            const biltyNumber = document.getElementById('biltyNumber').value.trim();
+            const warningDiv = document.getElementById('duplicateWarning');
+            if (!biltyNumber) { warningDiv.classList.add('hidden'); return true; }
+            if (existingBiltyNumbers.has(biltyNumber.toUpperCase())) {
+                warningDiv.textContent = `Warning: Bilty number ${biltyNumber} already exists!`;
+                warningDiv.classList.remove('hidden');
+                return false;
+            } else {
+                warningDiv.classList.add('hidden');
+                return true;
+            }
+        }
+
+        // Consignor Management
+        function updateConsignorDetails() {
+            const consignorName = document.getElementById('consignorName').value;
+            const consignorAddress = document.getElementById('consignorAddress');
+            const consignorGstin = document.getElementById('consignorGstin');
+            const customNameInput = document.getElementById('consignorNameCustom');
+            
+            const consignorData = {
+                'Ambuja Cement Ltd.': {
+                    address: 'Railway Siding Ghaziabad',
+                    gstin: '09AAACG0569P1Z5'
+                },
+                'ACC Ltd.': {
+                    address: 'Railway Siding Ghaziabad',
+                    gstin: '09AAACT1507C1ZV'
+                },
+                'UltraTech Cement Ltd.': {
+                    address: 'Railway Siding Ghaziabad',
+                    gstin: '09AABCU1681G1ZY'
+                },
+                'Shree Cement Ltd.': {
+                    address: 'Railway Siding Ghaziabad',
+                    gstin: '09AABCS5316D1ZU'
+                }
+            };
+            
+            if (consignorName === 'Custom') {
+                customNameInput.classList.remove('hidden');
+                customNameInput.required = true;
+                consignorAddress.value = '';
+                consignorGstin.value = '';
+            } else {
+                customNameInput.classList.add('hidden');
+                customNameInput.required = false;
+                
+                if (consignorData[consignorName]) {
+                    consignorAddress.value = consignorData[consignorName].address;
+                    consignorGstin.value = consignorData[consignorName].gstin;
+                } else {
+                    consignorAddress.value = '';
+                    consignorGstin.value = '';
+                }
+            }
+        }
+
+        // Weight Calculation
+        function calculateWeight() {
+            const quantityInput = document.getElementById('quantity');
+            const weightInput = document.getElementById('weight');
+            const quantity = parseFloat(quantityInput.value);
+            const settings = getSettings();
+            const bagWeight = settings.bagWeight || 50;
+
+            if (!isNaN(quantity) && quantity > 0) {
+                const weightInMt = (quantity * bagWeight) / 1000;
+                weightInput.value = weightInMt.toFixed(2);
+            } else {
+                weightInput.value = '';
+            }
+        }
+
+        // Draft Management
+        function saveDraft() {
+            const formData = {
+                biltyNumber: document.getElementById('biltyNumber').value,
+                deliveryNo: document.getElementById('deliveryNo').value,
+                invoiceAmount: document.getElementById('invoiceAmount').value,
+                deliveryDate: document.getElementById('deliveryDate').value,
+                consignorName: document.getElementById('consignorName').value,
+                consignorNameCustom: document.getElementById('consignorNameCustom').value,
+                consignorAddress: document.getElementById('consignorAddress').value,
+                consignorGstin: document.getElementById('consignorGstin').value,
+                consigneeName: document.getElementById('consigneeName').value,
+                consigneeAddress: document.getElementById('consigneeAddress').value,
+                consigneeGstin: document.getElementById('consigneeGstin').value,
+                consigneePhone: document.getElementById('consigneePhone').value,
+                vehicleNumber: document.getElementById('vehicleNumber').value,
+                driverName: document.getElementById('driverName').value,
+                goodsDescription: document.getElementById('goodsDescription').value,
+                quantity: document.getElementById('quantity').value,
+                weight: document.getElementById('weight').value,
+                freight: document.getElementById('freight').value,
+                savedAt: new Date().toISOString()
+            };
+            
+            localStorage.setItem('biltyDraft', JSON.stringify(formData));
+            showMessage('Draft saved successfully!', 'success');
+        }
+
+        function loadDraft() {
+            const draft = localStorage.getItem('biltyDraft');
+            if (draft) {
+                const formData = JSON.parse(draft);
+                Object.keys(formData).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element && formData[key] !== undefined && formData[key] !== null) {
+                        element.value = formData[key];
+                    }
+                });
+                // If consignorNameCustom was set but consignorName was Custom, show it
+                updateConsignorDetails();
+                calculateWeight();
+                showMessage('Draft loaded', 'success');
+            } else {
+                showMessage('No draft found', 'error');
+            }
+        }
+
+        // Persistence - bilty history
+        function loadExistingBiltyNumbers() {
+            const raw = localStorage.getItem('bilties');
+            existingBiltyNumbers = new Set();
+            if (raw) {
+                try {
+                    const arr = JSON.parse(raw);
+                    if (Array.isArray(arr)) {
+                        arr.forEach(item => {
+                            if (item.biltyNumber) existingBiltyNumbers.add(item.biltyNumber.toUpperCase());
+                        });
+                    }
+                } catch (e) {
+                    console.error('Failed to parse bilties from localStorage', e);
+                }
+            }
+        }
+
+        function saveBiltyToHistory(biltyObj) {
+            let arr = [];
+            const raw = localStorage.getItem('bilties');
+            if (raw) {
+                try { arr = JSON.parse(raw) || []; } catch(e){ arr = []; }
+            }
+            arr.unshift(biltyObj); // newest first
+            localStorage.setItem('bilties', JSON.stringify(arr));
+            existingBiltyNumbers.add(biltyObj.biltyNumber.toUpperCase());
+        }
+
+        // Generate PDF
+        async function generatePDF() {
+            if (!validateForm()) return;
+
+            const status = document.getElementById('statusMessage');
+            status.textContent = 'Generating PDF...';
+            status.classList.remove('hidden');
+
+            // populate PDF template fields
+            const biltyNumber = document.getElementById('biltyNumber').value.trim();
+            const deliveryNo = document.getElementById('deliveryNo').value.trim();
+            const deliveryDate = document.getElementById('deliveryDate').value;
+            const invoiceAmount = document.getElementById('invoiceAmount').value.trim();
+            const consignorNameSelect = document.getElementById('consignorName').value;
+            const consignorNameCustom = document.getElementById('consignorNameCustom').value.trim();
+            const consignorName = consignorNameSelect === 'Custom' ? consignorNameCustom : consignorNameSelect;
+            const consignorAddress = document.getElementById('consignorAddress').value;
+            const consignorGstin = document.getElementById('consignorGstin').value;
+            const consigneeName = document.getElementById('consigneeName').value;
+            const consigneeAddress = document.getElementById('consigneeAddress').value;
+            const consigneeGstin = document.getElementById('consigneeGstin').value;
+            const consigneePhone = document.getElementById('consigneePhone').value;
+            const vehicleNumber = document.getElementById('vehicleNumber').value;
+            const driverName = document.getElementById('driverName').value;
+            const goodsDescription = document.getElementById('goodsDescription').value;
+            const quantity = document.getElementById('quantity').value;
+            const weight = document.getElementById('weight').value;
+            const freight = document.getElementById('freight').value;
+
+            // fill pdf template text nodes
+            document.getElementById('pdfBiltyNumber').textContent = biltyNumber;
+            document.getElementById('pdfDeliveryNo').textContent = deliveryNo;
+            document.getElementById('pdfDeliveryDate').textContent = deliveryDate;
+            document.getElementById('pdfInvoiceAmount').textContent = invoiceAmount;
+            document.getElementById('pdfConsignorName').textContent = consignorName || '';
+            document.getElementById('pdfConsignorAddress').textContent = consignorAddress || '';
+            document.getElementById('pdfConsignorGstin').textContent = consignorGstin || '';
+            document.getElementById('pdfConsigneeName').textContent = consigneeName || '';
+            document.getElementById('pdfConsigneeAddress').textContent = consigneeAddress || '';
+            document.getElementById('pdfConsigneeGstin').textContent = consigneeGstin || '';
+            document.getElementById('pdfConsigneePhone').textContent = consigneePhone || '';
+            document.getElementById('pdfVehicleNumber').textContent = vehicleNumber || '';
+            document.getElementById('pdfDriverName').textContent = driverName || '';
+            document.getElementById('pdfGoodsDescription').textContent = goodsDescription || '';
+            document.getElementById('pdfQuantity').textContent = quantity || '';
+            document.getElementById('pdfWeight').textContent = weight || '';
+            document.getElementById('pdfFreight').textContent = freight || '';
+            document.getElementById('pdfGeneratedDate').textContent = new Date().toLocaleString();
+
+            // capture using html2canvas and create pdf
+            try {
+                const pdfElement = document.getElementById('pdfTemplate');
+                // temporarily make it visible (position off-screen used originally) - we'll render it as-is
+                pdfElement.style.left = '50%';
+                pdfElement.style.transform = 'translateX(-50%)';
+                pdfElement.style.position = 'relative';
+                pdfElement.style.background = '#fff';
+
+                // wait a tick for layout
+                await new Promise(res => setTimeout(res, 100));
+
+                const canvas = await html2canvas(pdfElement, { scale: 2 });
+                const imgData = canvas.toDataURL('image/png');
+
+                // A4 size calculations
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'pt',
+                    format: 'a4'
+                });
+
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+
+                const imgProps = pdf.getImageProperties(imgData);
+                const imgWidth = pageWidth - 40; // margins
+                const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+
+                pdf.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight);
+                const filename = `Bilty_${biltyNumber || 'NA'}_${(new Date()).toISOString().slice(0,19).replace(/[:T]/g,'-')}.pdf`;
+                pdf.save(filename);
+
+                // restore style
+                pdfElement.style.left = '-9999px';
+                pdfElement.style.transform = '';
+                pdfElement.style.position = 'absolute';
+
+                // add to history
+                const biltyObj = {
+                    biltyNumber: biltyNumber,
+                    deliveryNo: deliveryNo,
+                    invoiceAmount: invoiceAmount,
+                    deliveryDate: deliveryDate,
+                    consignorName: consignorName,
+                    consignorAddress: consignorAddress,
+                    consignorGstin: consignorGstin,
+                    consigneeName: consigneeName,
+                    consigneeAddress: consigneeAddress,
+                    consigneeGstin: consigneeGstin,
+                    consigneePhone: consigneePhone,
+                    vehicleNumber: vehicleNumber,
+                    driverName: driverName,
+                    goodsDescription: goodsDescription,
+                    quantity: quantity,
+                    weight: weight,
+                    freight: freight,
+                    generatedAt: new Date().toISOString()
+                };
+                saveBiltyToHistory(biltyObj);
+                showMessage('PDF generated and saved to history', 'success');
+            } catch (err) {
+                console.error(err);
+                showMessage('Error generating PDF: ' + err.message, 'error');
+            } finally {
+                status.classList.add('hidden');
+                // reload history/search data
+                loadExistingBiltyNumbers();
+                loadHistoryResults();
+                loadSearchResults();
+            }
+        }
+
+        // Print bilty (opens printable window)
+        function printBilty() {
+            // populate pdfTemplate similarly as generatePDF (in case user updated fields)
+            const biltyNumber = document.getElementById('biltyNumber').value.trim();
+            const deliveryNo = document.getElementById('deliveryNo').value.trim();
+            const deliveryDate = document.getElementById('deliveryDate').value;
+            const invoiceAmount = document.getElementById('invoiceAmount').value.trim();
+            const consignorNameSelect = document.getElementById('consignorName').value;
+            const consignorNameCustom = document.getElementById('consignorNameCustom').value.trim();
+            const consignorName = consignorNameSelect === 'Custom' ? consignorNameCustom : consignorNameSelect;
+            const consignorAddress = document.getElementById('consignorAddress').value;
+            const consignorGstin = document.getElementById('consignorGstin').value;
+            const consigneeName = document.getElementById('consigneeName').value;
+            const consigneeAddress = document.getElementById('consigneeAddress').value;
+            const consigneeGstin = document.getElementById('consigneeGstin').value;
+            const consigneePhone = document.getElementById('consigneePhone').value;
+            const vehicleNumber = document.getElementById('vehicleNumber').value;
+            const driverName = document.getElementById('driverName').value;
+            const goodsDescription = document.getElementById('goodsDescription').value;
+            const quantity = document.getElementById('quantity').value;
+            const weight = document.getElementById('weight').value;
+            const freight = document.getElementById('freight').value;
+
+            document.getElementById('pdfBiltyNumber').textContent = biltyNumber;
+            document.getElementById('pdfDeliveryNo').textContent = deliveryNo;
+            document.getElementById('pdfDeliveryDate').textContent = deliveryDate;
+            document.getElementById('pdfInvoiceAmount').textContent = invoiceAmount;
+            document.getElementById('pdfConsignorName').textContent = consignorName || '';
+            document.getElementById('pdfConsignorAddress').textContent = consignorAddress || '';
+            document.getElementById('pdfConsignorGstin').textContent = consignorGstin || '';
+            document.getElementById('pdfConsigneeName').textContent = consigneeName || '';
+            document.getElementById('pdfConsigneeAddress').textContent = consigneeAddress || '';
+            document.getElementById('pdfConsigneeGstin').textContent = consigneeGstin || '';
+            document.getElementById('pdfConsigneePhone').textContent = consigneePhone || '';
+            document.getElementById('pdfVehicleNumber').textContent = vehicleNumber || '';
+            document.getElementById('pdfDriverName').textContent = driverName || '';
+            document.getElementById('pdfGoodsDescription').textContent = goodsDescription || '';
+            document.getElementById('pdfQuantity').textContent = quantity || '';
+            document.getElementById('pdfWeight').textContent = weight || '';
+            document.getElementById('pdfFreight').textContent = freight || '';
+            document.getElementById('pdfGeneratedDate').textContent = new Date().toLocaleString();
+
+            const printable = document.getElementById('pdfTemplate').outerHTML;
+            const w = window.open('', '_blank');
+            w.document.write('<html><head><title>Print Bilty</title>');
+            w.document.write('<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">');
+            w.document.write('<style>body{font-family:Inter, sans-serif; padding:20px;} .bilty-section{border:1px solid #000;padding:10px;margin-bottom:10px;border-radius:8px;}</style>');
+            w.document.write('</head><body>');
+            w.document.write(printable);
+            w.document.write('</body></html>');
+            w.document.close();
+            setTimeout(() => { w.print(); }, 500);
+        }
+
+        // Reset
+        function resetForm() {
+            document.getElementById('biltyForm').reset();
+            // reset date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('deliveryDate').value = today;
+            document.getElementById('consignorNameCustom').classList.add('hidden');
+            document.getElementById('weight').value = '';
+            showMessage('Form reset', 'success');
+        }
+
+        // Search / History UI
+        function loadSearchResults() {
+            const raw = localStorage.getItem('bilties');
+            const container = document.getElementById('searchResults');
+            container.innerHTML = '';
+            if (!raw) {
+                container.innerHTML = '<p class="text-gray-500 text-center">No saved bilties</p>';
+                return;
+            }
+            try {
+                const arr = JSON.parse(raw) || [];
+                if (!arr.length) {
+                    container.innerHTML = '<p class="text-gray-500 text-center">No saved bilties</p>';
+                    return;
+                }
+                // show latest 10
+                arr.slice(0, 10).forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result';
+                    div.innerHTML = `<div class="flex justify-between"><div><strong>${escapeHtml(item.biltyNumber)}</strong> — ${escapeHtml(item.consigneeName || '')}</div>
+                                     <div>${escapeHtml(item.deliveryDate || '')}</div></div>
+                                     <div class="text-sm text-gray-600">Vehicle: ${escapeHtml(item.vehicleNumber || '')}</div>`;
+                    div.addEventListener('click', () => { populateFormFromHistory(item); showMainForm(); });
+                    container.appendChild(div);
+                });
+            } catch (e) {
+                container.innerHTML = '<p class="text-gray-500 text-center">Error loading bilties</p>';
+            }
+        }
+
+        function searchBilties() {
+            const term = document.getElementById('searchInput').value.trim().toLowerCase();
+            const raw = localStorage.getItem('bilties');
+            const container = document.getElementById('searchResults');
+            container.innerHTML = '';
+            if (!raw) {
+                container.innerHTML = '<p class="text-gray-500 text-center">No saved bilties</p>';
+                return;
+            }
+            try {
+                const arr = JSON.parse(raw) || [];
+                const results = arr.filter(it => {
+                    const combined = [it.biltyNumber, it.consigneeName, it.vehicleNumber, it.deliveryNo].join(' ').toLowerCase();
+                    return combined.includes(term);
+                });
+                if (!results.length) {
+                    container.innerHTML = '<p class="text-gray-500 text-center">No results</p>';
+                    return;
+                }
+                results.slice(0, 50).forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result';
+                    div.innerHTML = `<div class="flex justify-between"><div><strong>${escapeHtml(item.biltyNumber)}</strong> — ${escapeHtml(item.consigneeName || '')}</div>
+                                     <div>${escapeHtml(item.deliveryDate || '')}</div></div>
+                                     <div class="text-sm text-gray-600">Vehicle: ${escapeHtml(item.vehicleNumber || '')}</div>`;
+                    div.addEventListener('click', () => { populateFormFromHistory(item); showMainForm(); });
+                    container.appendChild(div);
+                });
+            } catch (e) {
+                container.innerHTML = '<p class="text-gray-500 text-center">Error searching bilties</p>';
+            }
+        }
+
+        function loadHistoryResults() {
+            const raw = localStorage.getItem('bilties');
+            const container = document.getElementById('historyResults');
+            container.innerHTML = '';
+            if (!raw) {
+                container.innerHTML = '<p class="text-gray-500 text-center">No bilty history found</p>';
+                return;
+            }
+            try {
+                const arr = JSON.parse(raw) || [];
+                if (!arr.length) {
+                    container.innerHTML = '<p class="text-gray-500 text-center">No bilty history found</p>';
+                    return;
+                }
+                arr.slice(0, 50).forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result';
+                    div.innerHTML = `<div class="flex justify-between"><div><strong>${escapeHtml(item.biltyNumber)}</strong> — ${escapeHtml(item.consigneeName || '')}</div>
+                                     <div>${new Date(item.generatedAt).toLocaleString()}</div></div>
+                                     <div class="text-sm text-gray-600">Vehicle: ${escapeHtml(item.vehicleNumber || '')}</div>`;
+                    div.addEventListener('click', () => { populateFormFromHistory(item); showMainForm(); });
+                    container.appendChild(div);
+                });
+            } catch (e) {
+                container.innerHTML = '<p class="text-gray-500 text-center">Error loading history</p>';
+            }
+        }
+
+        function filterHistory() {
+            const filter = document.getElementById('historyFilter').value;
+            const raw = localStorage.getItem('bilties');
+            const container = document.getElementById('historyResults');
+            container.innerHTML = '';
+            if (!raw) {
+                container.innerHTML = '<p class="text-gray-500 text-center">No bilty history found</p>';
+                return;
+            }
+            try {
+                let arr = JSON.parse(raw) || [];
+                const now = new Date();
+                if (filter === 'today') {
+                    arr = arr.filter(item => {
+                        const d = new Date(item.generatedAt);
+                        return d.toDateString() === now.toDateString();
+                    });
+                } else if (filter === 'week') {
+                    const weekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+                    arr = arr.filter(item => new Date(item.generatedAt) >= weekAgo);
+                } else if (filter === 'month') {
+                    const monthAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+                    arr = arr.filter(item => new Date(item.generatedAt) >= monthAgo);
+                }
+                if (!arr.length) {
+                    container.innerHTML = '<p class="text-gray-500 text-center">No bilty history found</p>';
+                    return;
+                }
+                arr.slice(0, 100).forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result';
+                    div.innerHTML = `<div class="flex justify-between"><div><strong>${escapeHtml(item.biltyNumber)}</strong> — ${escapeHtml(item.consigneeName || '')}</div>
+                                     <div>${new Date(item.generatedAt).toLocaleString()}</div></div>
+                                     <div class="text-sm text-gray-600">Vehicle: ${escapeHtml(item.vehicleNumber || '')}</div>`;
+                    div.addEventListener('click', () => { populateFormFromHistory(item); showMainForm(); });
+                    container.appendChild(div);
+                });
+            } catch (e) {
+                container.innerHTML = '<p class="text-gray-500 text-center">Error filtering history</p>';
+            }
+        }
+
+        function clearHistory() {
+            if (!confirm('Clear all bilty history? This cannot be undone.')) return;
+            localStorage.removeItem('bilties');
+            existingBiltyNumbers.clear();
+            loadHistoryResults();
+            loadSearchResults();
+            showMessage('Bilty history cleared', 'success');
+        }
+
+        function populateFormFromHistory(item) {
+            // copy values back to form
+            document.getElementById('biltyNumber').value = item.biltyNumber || '';
+            document.getElementById('deliveryNo').value = item.deliveryNo || '';
+            document.getElementById('invoiceAmount').value = item.invoiceAmount || '';
+            document.getElementById('deliveryDate').value = item.deliveryDate || '';
+            if (['Ambuja Cement Ltd.', 'ACC Ltd.', 'UltraTech Cement Ltd.', 'Shree Cement Ltd.'].includes(item.consignorName)) {
+                document.getElementById('consignorName').value = item.consignorName;
+                document.getElementById('consignorNameCustom').classList.add('hidden');
+            } else {
+                document.getElementById('consignorName').value = 'Custom';
+                document.getElementById('consignorNameCustom').classList.remove('hidden');
+                document.getElementById('consignorNameCustom').value = item.consignorName || '';
+            }
+            document.getElementById('consignorAddress').value = item.consignorAddress || '';
+            document.getElementById('consignorGstin').value = item.consignorGstin || '';
+            document.getElementById('consigneeName').value = item.consigneeName || '';
+            document.getElementById('consigneeAddress').value = item.consigneeAddress || '';
+            document.getElementById('consigneeGstin').value = item.consigneeGstin || '';
+            document.getElementById('consigneePhone').value = item.consigneePhone || '';
+            document.getElementById('vehicleNumber').value = item.vehicleNumber || '';
+            document.getElementById('driverName').value = item.driverName || '';
+            document.getElementById('goodsDescription').value = item.goodsDescription || '';
+            document.getElementById('quantity').value = item.quantity || '';
+            document.getElementById('weight').value = item.weight || '';
+            document.getElementById('freight').value = item.freight || '';
+        }
+
+        // Export to CSV (Excel-friendly)
+        function exportToExcel() {
+            const raw = localStorage.getItem('bilties');
+            if (!raw) {
+                showMessage('No bilties to export', 'error');
+                return;
+            }
+            try {
+                const arr = JSON.parse(raw) || [];
+                if (!arr.length) { showMessage('No bilties to export', 'error'); return; }
+                const headers = ['Bilty Number','Delivery No','Delivery Date','Invoice Amount','Consignor','Consignor Address','Consignor GSTIN','Consignee','Consignee Address','Consignee GSTIN','Consignee Phone','Vehicle Number','Driver Name','Description','Quantity','Weight(MT)','Freight','Generated At'];
+                const rows = arr.map(it => [
+                    it.biltyNumber || '',
+                    it.deliveryNo || '',
+                    it.deliveryDate || '',
+                    it.invoiceAmount || '',
+                    it.consignorName || '',
+                    it.consignorAddress || '',
+                    it.consignorGstin || '',
+                    it.consigneeName || '',
+                    it.consigneeAddress || '',
+                    it.consigneeGstin || '',
+                    it.consigneePhone || '',
+                    it.vehicleNumber || '',
+                    it.driverName || '',
+                    it.goodsDescription || '',
+                    it.quantity || '',
+                    it.weight || '',
+                    it.freight || '',
+                    it.generatedAt || ''
+                ]);
+                const csvContent = [headers, ...rows].map(e => e.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'bilties_export_' + (new Date().toISOString().slice(0,10)) + '.csv';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                showMessage('Export ready (CSV)', 'success');
+            } catch (e) {
+                showMessage('Error exporting: ' + e.message, 'error');
+            }
+        }
+
+        // Backup (download JSON)
+        function backupData() {
+            const raw = localStorage.getItem('bilties') || '[]';
+            const blob = new Blob([raw], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bilties_backup_' + (new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')) + '.json';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            showMessage('Backup downloaded', 'success');
+        }
+
+        // Restore (upload JSON)
+        function restoreData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json,application/json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    try {
+                        const parsed = JSON.parse(ev.target.result);
+                        if (!Array.isArray(parsed)) throw new Error('Backup file should be an array of bilties');
+                        localStorage.setItem('bilties', JSON.stringify(parsed));
+                        loadExistingBiltyNumbers();
+                        loadHistoryResults();
+                        loadSearchResults();
+                        showMessage('Restore successful', 'success');
+                    } catch (err) {
+                        showMessage('Restore failed: ' + err.message, 'error');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // Bulk generation: accept JSON array via prompt (simple)
+        function showBulkGenerationModal() {
+            const text = prompt('Paste JSON array of bilties to add to history (or cancel):');
+            if (!text) return;
+            try {
+                const arr = JSON.parse(text);
+                if (!Array.isArray(arr)) throw new Error('Input is not a JSON array');
+                const existing = JSON.parse(localStorage.getItem('bilties') || '[]');
+                const combined = arr.concat(existing); // add new at front
+                localStorage.setItem('bilties', JSON.stringify(combined));
+                loadExistingBiltyNumbers();
+                loadHistoryResults();
+                loadSearchResults();
+                showMessage('Bulk add successful', 'success');
+            } catch (e) {
+                showMessage('Bulk add failed: ' + e.message, 'error');
+            }
+        }
+
+        // Utility: safe text escape
+        function escapeHtml(str) {
+            if (!str && str !== 0) return '';
+            return String(str)
+              .replace(/&/g, '&amp;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#39;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;');
+        }
+
+        // Simple on-screen message
+        function showMessage(msg, type='info', duration=3500) {
+            // create a floating message box
+            const box = document.createElement('div');
+            box.style.position = 'fixed';
+            box.style.right = '20px';
+            box.style.bottom = '20px';
+            box.style.zIndex = 9999;
+            box.style.padding = '12px 16px';
+            box.style.borderRadius = '10px';
+            box.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
+            box.style.fontWeight = 600;
+            box.style.color = '#fff';
+            if (type === 'success') box.style.background = '#10B981';
+            else if (type === 'error') box.style.background = '#EF4444';
+            else box.style.background = '#2563EB';
+            box.textContent = msg;
+            document.body.appendChild(box);
+            setTimeout(()=> {
+                box.style.transition = 'opacity 300ms';
+                box.style.opacity = '0';
+                setTimeout(()=> box.remove(), 350);
+            }, duration);
+        }
+
+    </script>
+</body>
+</html>
